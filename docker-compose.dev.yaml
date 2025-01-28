@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+  nginx:
+    build:
+      context: ./nginx/dev
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/dev/config/nginx:/etc/nginx
+      - ./nginx/dev/share/index.html:/usr/share/nginx/html/index.html
+    restart: on-failure:5
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - n8n-automation
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    env_file: .env
+    environment:
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n-automation
+
+networks:
+  n8n-automation:
+    driver: bridge
+  default:
+    external:
+      name: host
+
+volumes:
+  n8n_data:
+    external: true
